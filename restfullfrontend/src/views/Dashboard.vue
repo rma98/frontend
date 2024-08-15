@@ -44,54 +44,69 @@ export default {
         nome: '',
         descricao: ''
       },
+      errorMessage: '',
     };
   },
   methods: {
     async fetchSalas() {
       try {
         const response = await fetch("http://localhost:8080/api/salas");
+        if (!response.ok) {
+          throw new Error('Falha ao buscar salas');
+        }
         this.salas = await response.json();
-        // Associa os recursos de cada sala
         for (let sala of this.salas) {
           sala.recursos = await this.fetchRecursos(sala.id);
         }
       } catch (error) {
+        this.errorMessage = error.message;
         console.error("Falha ao buscar salas", error);
       }
     },
     async fetchRecursos(salaId) {
       try {
         const response = await fetch(`http://localhost:8080/api/recursos/sala/${salaId}`);
+        if (!response.ok) {
+          throw new Error('Falha ao buscar recursos');
+        }
         return await response.json();
       } catch (error) {
+        this.errorMessage = error.message;
         console.error("Falha ao buscar recursos", error);
         return [];
       }
     },
     async deleteSala(id) {
       try {
-        await fetch(`http://localhost:8080/api/salas/${id}`, {
+        const response = await fetch(`http://localhost:8080/api/salas/${id}`, {
           method: 'DELETE',
         });
-        this.fetchSalas(); // Atualiza a lista de salas
+        if (!response.ok) {
+          throw new Error('Falha ao deletar sala');
+        }
+        this.fetchSalas();
       } catch (error) {
+        this.errorMessage = error.message;
         console.error("Falha ao deletar sala", error);
       }
     },
     async deleteRecurso(id) {
       try {
-        await fetch(`http://localhost:8080/api/recursos/${id}`, {
+        const response = await fetch(`http://localhost:8080/api/recursos/${id}`, {
           method: 'DELETE',
         });
-        // Atualiza as salas para refletir a exclusão
+        if (!response.ok) {
+          throw new Error('Falha ao deletar recurso');
+        }
         this.fetchSalas();
       } catch (error) {
+        this.errorMessage = error.message;
         console.error("Falha ao deletar recurso", error);
       }
     },
     async addRecurso(salaId) {
       try {
-        await fetch(`http://localhost:8080/api/recursos`, {
+        const response = await fetch(`http://localhost:8080/api/recursos`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -102,17 +117,25 @@ export default {
             salaId: salaId
           }),
         });
+        if (!response.ok) {
+          throw new Error('Falha ao adicionar recurso');
+        }
         this.newRecurso.nome = '';
         this.newRecurso.descricao = '';
-        this.fetchSalas(); // Atualiza a lista de salas e recursos
+        this.fetchSalas();
       } catch (error) {
+        this.errorMessage = error.message;
         console.error("Falha ao adicionar recurso", error);
       }
     },
   },
   mounted() {
     this.user = JSON.parse(localStorage.getItem('user'));
-    this.fetchSalas();
+    if (this.user) {
+      this.fetchSalas();
+    } else {
+      this.$router.push('/login'); // Redireciona para login se o usuário não estiver autenticado
+    }
   }
 };
 </script>
